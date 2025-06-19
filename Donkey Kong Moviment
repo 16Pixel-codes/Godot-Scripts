@@ -1,0 +1,159 @@
+extends CharacterBody2D
+
+@onready var coyote_timer: Timer = $Timer
+@onready var animations: AnimatedSprite2D = $AnimatedSprite2D
+
+# ---------------- NODES ----------------
+#
+# CHARACTERBODY2D
+# ANIMATEDSPRITE2D
+# COLLISIONSHAPE2D
+# TIMER
+
+#  ---------------- MOVIMENT VARIEBLES ----------------
+
+var direction: Vector2 = Vector2.ZERO
+
+var c_speed: float
+
+@export var n_speed: float = 180
+@export var r_speed: float = 230
+
+@export var acceleration: float = 800
+@export var friction: float = 1000
+
+#  ---------------- JUMP VARIEBLES ----------------
+
+@export var jump_velocity: float = 250
+@export var gravity: float = 600
+@export var fall_gravity: float = 800
+@export var max_fall_speed: float = 1000
+
+@export var jump_release: float = 700
+
+#  ---------------- OTHERS VARIEBLES ----------------
+var input: int = 0
+@onready var current_anima: String = "iddle"
+
+enum STATES {
+	
+	IDDLE,
+	WALK,
+	JUMP
+	
+	
+	}
+
+var current_state = STATES.IDDLE
+
+
+func _physics_process(delta):
+	
+	anima_control()
+	
+	gravity_(delta)
+	
+	moviment_(delta)
+	jump_release_(delta)
+	control_()
+	
+	
+	move_and_slide()
+
+func control_():
+	
+	c_speed = r_speed if Input.is_action_pressed("ui_select") else n_speed
+	
+	if Input.is_action_pressed("ui_right"): input = 1
+	elif Input.is_action_pressed("ui_left"): input = -1
+	else: input = 0 
+	
+	if Input.is_action_just_pressed("ui_up"):
+		
+		if is_on_floor():
+			jump_()
+		
+		else:
+			
+			coyote_timer.start()
+			
+			if current_anima == "roll":
+				jump_()
+				
+	
+	elif Input.is_action_just_pressed("ui_select"):
+		roll_()
+	
+	if coyote_timer.time_left > 0 and is_on_floor():
+		jump_()
+	
+	pass
+
+func roll_():
+	if current_state != STATES.WALK or current_anima == "roll" or not is_on_floor(): return
+	
+	animations.play("roll")
+	current_anima = "roll"		
+	await animations.animation_finished
+	
+	current_anima = ""
+	
+	pass
+
+func moviment_(delta):
+	
+	if input != 0: velocity.x = move_toward(velocity.x, input * c_speed, acceleration * delta)
+	else: velocity.x = move_toward(velocity.x, 0, friction * delta)
+
+func gravity_(delta):
+	if is_on_floor():
+		velocity.y = 0
+	else:
+		if velocity.y < 0:
+			velocity.y += gravity * delta
+		else:
+			velocity.y += fall_gravity * delta
+		
+		velocity.y = min(velocity.y, max_fall_speed)
+
+func jump_():
+	
+	current_state = STATES.JUMP
+	velocity.y = -jump_velocity
+	
+	pass
+
+func jump_release_(delta):
+	if velocity.y < 0 and not Input.is_action_pressed("ui_up"):
+		velocity.y = move_toward(velocity.y, 0, jump_release * delta)
+
+func anima_control():
+	
+	var new_anima: String
+	
+	if velocity.x > 0: animations.flip_h = false
+	elif velocity.x < 0: animations.flip_h = true
+	
+	
+	if is_on_floor():
+		
+		current_state = STATES.WALK if velocity.x != 0 else STATES.IDDLE
+		
+		new_anima = "walk" if velocity.x != 0 else "iddle"
+	
+	else:
+		
+		if velocity.y != 0:
+			new_anima = "jump" if velocity.y < 0 else "fall"
+	
+	if current_anima == "roll" and velocity.y >= 0: return
+	
+	if new_anima != current_anima:
+		
+		animations.play(new_anima)
+		current_anima = new_anima
+	
+	
+	
+	
+	pass
