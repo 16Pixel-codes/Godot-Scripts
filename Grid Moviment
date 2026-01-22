@@ -1,0 +1,94 @@
+extends CharacterBody2D
+
+# TAMANHO DO GRID
+@export var tile_size: int = 16
+
+# CONTROLA VELOCIDADE DO PERSONAGEM
+@export var current_speed: float = 120
+
+# CONTROLA A POSIÇÃO QUE O PERSONAGEM VAI SE MOVER
+@onready var destination: Vector2 = position
+
+# CONTROLA A DIREÇÃO QUE O PERSONAGEM NÃO PODE SE MOVER
+var collision_direction: PackedVector2Array = []
+
+enum {
+	IDDLE,
+	WALK
+	}
+
+# SALVA O ESTADO ATUAL DO PERSONAGEM
+var current_state = IDDLE
+
+func _physics_process(delta: float) -> void:
+	
+	input_control()
+	move()
+	
+	pass
+
+func input_control():
+	
+	if Input.is_action_pressed("ui_right"):
+		move_start(Vector2(1,0))
+		
+	elif Input.is_action_pressed("ui_left"):
+		move_start(Vector2(-1,0))
+		
+	elif Input.is_action_pressed("ui_up"):
+		move_start(Vector2(0,-1))
+		
+	elif Input.is_action_pressed("ui_down"):
+		move_start(Vector2(0,1))
+	
+	pass
+
+func move_start(Walk_Direction: Vector2):
+	
+	if current_state != IDDLE: return
+	
+	if Walk_Direction in collision_direction: return
+	
+	$Area2D.monitoring = false
+	
+	destination = position + Walk_Direction * tile_size
+	current_state = WALK
+	
+	
+	pass
+
+func move():
+	
+	if current_state != WALK: return
+	
+	var direction = (destination - position).normalized()
+	velocity = direction * current_speed
+	
+	move_and_slide()
+	
+	if position.distance_to(destination) < 1:
+		
+		position = destination
+		velocity = Vector2.ZERO
+		current_state = IDDLE
+		$Area2D.monitoring = true
+	
+
+func _on_area_2d_body_shape_entered(_body_rid: RID, _body: Node2D, _body_shape_index: int, local_shape_index: int) -> void:
+	
+	if local_shape_index == 0:
+		collision_direction.append(Vector2(1,0))
+	elif local_shape_index == 1:
+		collision_direction.append(Vector2(0,1))
+	elif local_shape_index == 2:
+		collision_direction.append(Vector2(-1,0))
+	elif local_shape_index == 3:
+		collision_direction.append(Vector2(0,-1))
+	
+	pass # Replace with function body.
+
+func _on_area_2d_body_exited(body: Node2D) -> void:
+	
+	collision_direction.clear()
+	
+	pass # Replace with function body.
