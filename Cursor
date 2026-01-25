@@ -1,1 +1,54 @@
+extends Sprite2D
+
+@export var coluns: int = 1
+
+var cursor_index: int
+var cursor_positions: PackedVector2Array
+
+var is_moving: bool
+
+func _ready() -> void:
+	
+	await get_tree().process_frame
+	
+	for childs in get_node("%menu").get_children():
+		cursor_positions.append(childs.get_node("Marker2D").global_position)
+		
+		pass
+	
+	global_position = cursor_positions[0]
+	
+	pass
+
+func _physics_process(delta: float) -> void:
+	
+	move_()
+	pass
+
+func move_() -> void:
+	
+	if is_moving: return
+	
+	if Input.is_action_pressed("ui_right"): cursor_index += 1
+	elif Input.is_action_pressed("ui_left"): cursor_index += -1
+	elif Input.is_action_pressed("ui_down"): cursor_index += coluns
+	elif Input.is_action_pressed("ui_up"): cursor_index += -coluns
+	else: return
+	
+	cursor_index = clamp(cursor_index,0,cursor_positions.size() - 1)
+	
+	is_moving = true
+	
+	var destination: Vector2 = cursor_positions[cursor_index]
+	
+	var tween = create_tween()
+	
+	tween.set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(self, "global_position", destination, 0.15)
+	
+	await tween.finished
+	
+	is_moving = false
+	
+	pass
 
